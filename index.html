@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Authorized Practice Quiz</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background-color: #f4f7f6; }
+        .box { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); max-width: 500px; margin: 0 auto; }
+        input { width: 90%; padding: 10px; margin: 10px 0; border: 1px solid #ddd; border-radius: 4px; }
+        .btn { width: 100%; padding: 12px; background-color: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        #main-quiz-area { display: none; margin-top: 20px; }
+        .question-block { background: white; padding: 15px; margin-bottom: 10px; border-radius: 5px; border-left: 5px solid #007bff; }
+        #error-msg { color: red; font-weight: bold; margin-top: 10px; text-align: center; }
+        #loading { display: none; text-align: center; color: #007bff; }
+    </style>
+</head>
+<body>
+
+    <div class="box" id="login-section">
+        <h2 style="text-align:center;">Student Login</h2>
+        <input type="text" id="userName" placeholder="Full Name">
+        <input type="text" id="rollNumber" placeholder="Authorized Roll Number">
+        <button class="btn" onclick="checkAccess()">Start Quiz</button>
+        <div id="loading-rolls">Checking authorization...</div>
+        <div id="error-msg"></div>
+    </div>
+
+    <div id="main-quiz-area">
+        <h2 style="text-align:center;">Questions</h2>
+        <div id="quiz-container"></div>
+        <button class="btn" id="submitBtn" onclick="calculateResult()">Submit Results</button>
+        <div id="loading">Submitting, please wait...</div>
+        <div id="result-display"></div>
+    </div>
+
+    <script>
+        // 🔴 यहाँ अपना नया Google Script URL डालें 🔴
+        const scriptURL = 'https://script.google.com/macros/s/AKfycbznAS31uHaAi8UUA3K-IiO-gUnMkBMAuy1Mns3VBmCP0uPf5H5r42dqOgIVTGJ4smpp/exec'
+
+        const quizData = [
+    {
+        id: 1,
+        question: "हाल ही में भारत के किस शहर में पहली 'एयर टैक्सी' सेवा शुरू करने की घोषणा की गई है?",
+        options: ["दिल्ली", "बेंगलुरु", "मुंबई", "गुरुग्राम"],
+        correctAnswer: "गुरुग्राम"
+    },
+    {
+        id: 2,
+        question: "भारत रत्न 2024 से किसे सम्मानित किया गया है?",
+        options: ["लाल कृष्ण आडवाणी", "कर्पूरी ठाकुर", "चौधरी चरण सिंह", "उपरोक्त सभी"],
+        correctAnswer: "उपरोक्त सभी"
+    },
+    {
+        id: 3,
+        question: "2024 के गणतंत्र दिवस परेड में किस राज्य की झांकी को प्रथम पुरस्कार मिला?",
+        options: ["उत्तर प्रदेश", "उत्तराखंड", "ओडिशा", "गुजरात"],
+        correctAnswer: "ओडिशा"
+    },
+    {
+        id: 4,
+        question: "वर्तमान में भारत के इसरो (ISRO) के अध्यक्ष कौन हैं?",
+        options: ["एस. सोमनाथ", "के. सिवन", "जी. सतीश रेड्डी", "ए.एस. किरण कुमार"],
+        correctAnswer: "एस. सोमनाथ"
+    },
+    {
+        id: 5,
+        question: "अयोध्या में राम मंदिर का प्राण प्रतिष्ठा समारोह किस तिथि को आयोजित किया गया था?",
+        options: ["20 जनवरी 2024", "22 जनवरी 2024", "24 जनवरी 2024", "26 जनवरी 2024"],
+        correctAnswer: "22 जनवरी 2024"
+    },
+    {
+        id: 6,
+        question: "हाल ही में 'लक्षद्वीप' पर्यटन को बढ़ावा देने के लिए किसने चर्चा शुरू की थी?",
+        options: ["अमिताभ बच्चन", "नरेंद्र मोदी", "सचिन तेंदुलकर", "अक्षय कुमार"],
+        correctAnswer: "नरेंद्र मोदी"
+    },
+    {
+        id: 7,
+        question: "दुनिया का सबसे ऊंचा रेलवे पुल भारत के किस राज्य/केंद्र शासित प्रदेश में स्थित है?",
+        options: ["हिमाचल प्रदेश", "लद्दाख", "जम्मू और कश्मीर", "सिक्किम"],
+        correctAnswer: "जम्मू और कश्मीर"
+    },
+    {
+        id: 8,
+        question: "G20 शिखर सम्मेलन 2023 की अध्यक्षता किस देश ने की थी?",
+        options: ["ब्राजील", "भारत", "इंडोनेशिया", "अमेरिका"],
+        correctAnswer: "भारत"
+    },
+    {
+        id: 9,
+        question: "चंद्रयान-3 मिशन के लैंडर का नाम क्या है?",
+        options: ["प्रज्ञान", "विक्रम", "आदित्य", "ध्रुव"],
+        correctAnswer: "विक्रम"
+    },
+    {
+        id: 10,
+        question: "नीरज चोपड़ा किस खेल से संबंधित हैं?",
+        options: ["क्रिकेट", "कुश्ती", "भाला फेंक (Javelin Throw)", "निशानेबाजी"],
+        correctAnswer: "भाला फेंक (Javelin Throw)"
+    }
+    {
+        id: 11,
+        question: "कंप्यूटर का 'मस्तिष्क' (Brain) किसे कहा जाता है?",
+        options: ["RAM", "Monitor", "CPU", "Hard Disk"],
+        correctAnswer: "CPU"
+    },
+    {
+        id: 12,
+        question: "क्षेत्रफल की दृष्टि से भारत का सबसे बड़ा राज्य कौन सा है?",
+        options: ["उत्तर प्रदेश", "महाराष्ट्र", "राजस्थान", "मध्य प्रदेश"],
+        correctAnswer: "राजस्थान"
+    },
+    {
+        id: 13,
+        question: "सफेद क्रांति (White Revolution) का संबंध किससे है?",
+        options: ["मछली उत्पादन", "दूध उत्पादन", "गेहूं उत्पादन", "चावल उत्पादन"],
+        correctAnswer: "दूध उत्पादन"
+    },
+    {
+        id: 14,
+        question: "सौरमंडल का सबसे गर्म ग्रह (Hottest Planet) कौन सा है?",
+        options: ["बुध (Mercury)", "शुक्र (Venus)", "मंगल (Mars)", "बृहस्पति (Jupiter)"],
+        correctAnswer: "शुक्र (Venus)"
+    },
+    {
+        id: 15,
+        question: "मनुष्य के शरीर में कुल कितनी हड्डियाँ होती हैं?",
+        options: ["201", "206", "210", "208"],
+        correctAnswer: "206"
+    },
+    {
+        id: 16,
+        question: "WWW (World Wide Web) का आविष्कार किसने किया था?",
+        options: ["बिल गेट्स", "मार्क जुकरबर्ग", "टिम बर्नर्स-ली", "स्टीव जॉब्स"],
+        correctAnswer: "टिम बर्नर्स-ली"
+    },
+    {
+        id: 17,
+        question: "भारत की सबसे लंबी नदी कौन सी है?",
+        options: ["यमुना", "ब्रह्मपुत्र", "गंगा", "गोदावरी"],
+        correctAnswer: "गंगा"
+    },
+    {
+        id: 18,
+        question: "वायुमंडल में सबसे अधिक मात्रा में कौन सी गैस पाई जाती है?",
+        options: ["ऑक्सीजन", "नाइट्रोजन", "कार्बन डाइऑक्साइड", "हाइड्रोजन"],
+        correctAnswer: "नाइट्रोजन"
+    },
+    {
+        id: 19,
+        question: "भारत का राष्ट्रीय खेल (National Sport) कौन सा माना जाता है?",
+        options: ["क्रिकेट", "फुटबॉल", "हॉकी", "कबड्डी"],
+        correctAnswer: "हॉकी"
+    },
+    {
+        id: 20,
+        question: "1 बाइट (1 Byte) में कितने बिट्स (Bits) होते हैं?",
+        options: ["4", "8", "16", "32"],
+        correctAnswer: "8"
+    }
+];
+
+            // अपने बाकी 10 प्रश्न यहाँ जोड़ें...
+        
+
+        async function checkAccess() {
+            const name = document.getElementById('userName').value.trim();
+            const roll = document.getElementById('rollNumber').value.trim();
+            const errorMsg = document.getElementById('error-msg');
+            const loadRolls = document.getElementById('loading-rolls');
+
+            if (!name || !roll) {
+                errorMsg.innerText = "⚠️ Fill both fields!";
+                return;
+            }
+
+            try {
+                loadRolls.style.display = "block";
+                // Google Sheet से रोल नंबर की लिस्ट मंगाना
+                const response = await fetch(scriptURL);
+                const allowedStudents = await response.json();
+                loadRolls.style.display = "none";
+
+                if (allowedStudents.includes(roll)) {
+                    document.getElementById('login-section').style.display = "none";
+                    document.getElementById('main-quiz-area').style.display = "block";
+                    loadQuiz();
+                } else {
+                    errorMsg.innerText = "❌ Access Denied: Roll number not found in sheet!";
+                }
+            } catch (err) {
+                errorMsg.innerText = "⚠️ Error connecting to sheet. Try again!";
+                console.error(err);
+            }
+        }
+
+        function loadQuiz() {
+            const container = document.getElementById('quiz-container');
+            let html = '';
+            quizData.forEach((q, i) => {
+                html += `<div class="question-block"><p><b>Q${q.id}: ${q.question}</b></p>`;
+                q.options.forEach(opt => {
+                    html += `<label style="display:block; margin:5px;"><input type="radio" name="q${i}" value="${opt}"> ${opt}</label>`;
+                });
+                html += `</div>`;
+            });
+            container.innerHTML = html;
+        }
+
+        function calculateResult() {
+            const name = document.getElementById('userName').value;
+            const roll = document.getElementById('rollNumber').value;
+            let score = 0;
+            quizData.forEach((q, i) => {
+                const sel = document.querySelector(`input[name="q${i}"]:checked`);
+                if (sel && sel.value === q.correctAnswer) score++;
+            });
+
+            document.getElementById('loading').style.display = "block";
+            document.getElementById('submitBtn').disabled = true;
+
+            fetch(scriptURL, {
+                method: 'POST',
+                body: JSON.stringify({name: name, roll: roll, score: score, total: quizData.length}),
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' }
+            }).then(() => {
+                document.getElementById('loading').style.display = "none";
+                document.getElementById('result-display').innerHTML = `<h3>Done! Score: ${score}/${quizData.length}</h3>`;
+                alert("Saved to Sheet!");
+            });
+        }
+    </script>
+</body>
+</html>
